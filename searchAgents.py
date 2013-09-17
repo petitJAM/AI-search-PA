@@ -323,7 +323,7 @@ class CornersProblem(search.SearchProblem):
           tmpCorners.remove(nextState)
           successors.append(((nextState, tuple(tmpCorners)), action, 1))
         else:
-          successors.append(((nextState, tuple(corners)), action, 1))
+          successors.append(((nextState, corners), action, 1))
       
     self._expanded += 1
     return successors

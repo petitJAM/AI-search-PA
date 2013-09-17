@@ -87,6 +87,7 @@ def depthFirstSearch(problem):
   print "Start's successors:", problem.getSuccessors(problem.getStartState())
   """
   "*** YOUR CODE HERE ***"
+  from game import Directions
 
   start_state = problem.getStartState()
   state_stack = util.Stack()
@@ -97,6 +98,9 @@ def depthFirstSearch(problem):
   goal_state = []
 
   visited_states.append(start_state)
+
+  if problem.isGoalState(start_state): 
+    return [Directions.STOP]
 
   for state in problem.getSuccessors(start_state):
     parent_states[state[0]] = start_state
@@ -138,25 +142,53 @@ def breadthFirstSearch(problem):
   [2nd Edition: p 73, 3rd Edition: p 82]
   """
   "*** YOUR CODE HERE ***"
+  from game import Directions
+
   start_state = problem.getStartState()
-  state_queue = [[x] for x in problem.getSuccessors(start_state)]
-  visited = [start_state]
+  state_queue = util.Queue()
 
-  while state_queue:
-    path = state_queue.pop(0)
-    visited.append(path[-1][0])
+  visited_states = []
+  parent_states = {}
+  dir_to_node = {}
+  goal_state = []
 
-    if problem.isGoalState(path[-1][0]):
-      # print "Path is", len(path), "moves long."
-      return [p[1] for p in path]
+  visited_states.append(start_state)
 
-    for successor in problem.getSuccessors(path[-1][0]):
-      if not successor[0] in visited:
-        next_path = list(path)
-        next_path.append(successor)
-        state_queue.append(next_path)
+  if problem.isGoalState(start_state): 
+    return [Directions.STOP]
 
-    print sum([len(p) for p in state_queue])
+  for state in problem.getSuccessors(start_state):
+    parent_states[state[0]] = start_state
+    dir_to_node[state[0]] = state[1]
+    state_queue.push(state)
+
+  while not state_queue.isEmpty():
+    current_node = state_queue.pop()
+    visited_states.append(current_node[0])
+
+    if problem.isGoalState(current_node[0]):
+      goal_state = current_node[0]
+      break
+
+    for state in problem.getSuccessors(current_node[0]):
+      if state[0] not in visited_states and state[0] not in parent_states.keys():
+        state_queue.push(state)
+        parent_states[state[0]] = current_node[0]
+        dir_to_node[state[0]] = current_node[1]
+
+  node_path = []
+  while True:
+    node_path.insert(0, goal_state)
+    if parent_states[goal_state] != start_state:
+      goal_state = parent_states[goal_state]
+    else:
+      break
+
+  dir_path = []
+  for node in node_path:
+    dir_path.append(dir_to_node[node])
+
+  return dir_path
       
 def uniformCostSearch(problem):
   "Search the node of least total cost first. "
@@ -174,7 +206,6 @@ def uniformCostSearch(problem):
   while pq.heap:
     path = pq.pop()
     if problem.isGoalState(path[-1][0]):
-      print "Path:", path
       return [p[1] for p in path]
 
     visited.add(path[-1][0])
