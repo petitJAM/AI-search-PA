@@ -12,6 +12,9 @@ by Pacman agents (in searchAgents.py).
 """
 
 import util
+import heapq, pprint
+
+pp = pprint.PrettyPrinter(indent=2)
 
 class SearchProblem:
   """
@@ -84,7 +87,24 @@ def depthFirstSearch(problem):
   print "Start's successors:", problem.getSuccessors(problem.getStartState())
   """
   "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+
+  start_state = problem.getStartState()
+  state_stack = [[s] for s in problem.getSuccessors(start_state)]
+  visited = [start_state]
+
+  while state_stack:
+    path = state_stack.pop()
+    visited.append(path[-1][0])
+
+    if problem.isGoalState(path[-1][0]):
+      # print "Path is", len(path), "moves long."
+      return [p[1] for p in path]
+
+    for successor in problem.getSuccessors(path[-1][0]):
+      if not successor[0] in visited:
+        next_path = list(path)
+        next_path.append(successor)
+        state_stack.append(next_path)
 
 def breadthFirstSearch(problem):
   """
@@ -92,12 +112,64 @@ def breadthFirstSearch(problem):
   [2nd Edition: p 73, 3rd Edition: p 82]
   """
   "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+  start_state = problem.getStartState()
+  state_queue = [[x] for x in problem.getSuccessors(start_state)]
+  visited = [start_state]
+
+  while state_queue:
+    path = state_queue.pop(0)
+    visited.append(path[-1][0])
+
+    if problem.isGoalState(path[-1][0]):
+      # print "Path is", len(path), "moves long."
+      return [p[1] for p in path]
+
+    for successor in problem.getSuccessors(path[-1][0]):
+      if not successor[0] in visited:
+        next_path = list(path)
+        next_path.append(successor)
+        state_queue.append(next_path)
+
+    print sum([len(p) for p in state_queue])
       
 def uniformCostSearch(problem):
   "Search the node of least total cost first. "
   "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+
+  start_state = problem.getStartState()
+  first_nodes = problem.getSuccessors(start_state)
+  
+  pq = util.PriorityQueue()
+  visited = set([])
+
+  for n in first_nodes:
+    pq.push([n], n[2])
+
+  while pq.heap:
+    path = pq.pop()
+    if problem.isGoalState(path[-1][0]):
+      print "Path:", path
+      return [p[1] for p in path]
+
+    visited.add(path[-1][0])
+
+    for successor in problem.getSuccessors(path[-1][0]):
+      if successor[0] not in visited:
+        existing_priority, indexof = priorityQueueContains(pq, successor[0])
+        if not existing_priority:
+          new_path = list(path)
+          new_path.append(successor)
+          pq.push(new_path, successor[2])
+        elif successor[2] < existing_priority:
+          pq.heap[indexof][0] = successor[2] # change the priority
+          heapq.heapify(pq.heap)             # then reset the pqueue # this might be slowing things down some
+
+def priorityQueueContains(pq, item):
+  for i, pair in enumerate(pq.heap):
+    if pair[1][-1][0] == item: # my priority queue contains paths.  pair[1][-1][0] get the last state of those lists.
+      return (pair[0], i)                                      # --> (priority, item) 
+  return (False, -1)                                                          # --> [(state, dir, cost), ...]
+
 
 def nullHeuristic(state, problem=None):
   """
@@ -109,8 +181,64 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
   "Search the node that has the lowest combined cost and heuristic first."
   "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
-    
+  
+  open_set = util.PriorityQueue()
+  visited_states = []
+  prev_states = {}
+  dirs = {}
+
+  goal_state = []
+
+  start_state = problem.getStartState()
+  first_nodes = problem.getSuccessors(start_state)
+
+  for n in first_nodes:
+    prev_states[n[0]] = start_state
+    dirs[n[0]] = n[1]
+    open_set.push(n, problem.getCostOfActions([n[1]]) + heuristic(n[0], problem))
+
+  while not open_set.isEmpty():
+    current_state = open_set.pop()
+    visited_states.append(current_state[0])
+
+    if problem.isGoalState(current_state[0]):
+      goal_state = current_state[0]
+      break
+
+    for successor in problem.getSuccessors(current_state[0]):
+      if successor[0] not in visited_states and successor[0] not in prev_states.keys():
+        prev_states[successor[0]] = current_state[0]
+        dirs[successor[0]] = successor[1]
+        back_to_start = []
+        dir_back_to_start = []
+
+        parent = successor[0]
+        while True:
+          back_to_start.insert(0, parent)
+          if prev_states[parent] != start_state:
+            parent = prev_states[parent]
+          else:
+            break
+
+        for state in back_to_start:
+          dir_back_to_start.append(dirs[state])
+
+        open_set.push(successor, problem.getCostOfActions(dir_back_to_start) + heuristic(successor[0], problem))
+
+  path = []
+  while True:
+    path.insert(0, goal_state)
+    if prev_states[goal_state] != start_state:
+      goal_state = prev_states[goal_state]
+    else:
+      break
+
+  dir_path = []
+  for state in path:
+    dir_path.append(dirs[state])
+
+  return dir_path
+  
   
 # Abbreviations
 bfs = breadthFirstSearch
