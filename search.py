@@ -89,22 +89,48 @@ def depthFirstSearch(problem):
   "*** YOUR CODE HERE ***"
 
   start_state = problem.getStartState()
-  state_stack = [[s] for s in problem.getSuccessors(start_state)]
-  visited = [start_state]
+  state_stack = util.Stack()
 
-  while state_stack:
-    path = state_stack.pop()
-    visited.append(path[-1][0])
+  visited_states = []
+  parent_states = {}
+  dir_to_node = {}
+  goal_state = []
 
-    if problem.isGoalState(path[-1][0]):
-      # print "Path is", len(path), "moves long."
-      return [p[1] for p in path]
+  visited_states.append(start_state)
 
-    for successor in problem.getSuccessors(path[-1][0]):
-      if not successor[0] in visited:
-        next_path = list(path)
-        next_path.append(successor)
-        state_stack.append(next_path)
+  for state in problem.getSuccessors(start_state):
+    parent_states[state[0]] = start_state
+    dir_to_node[state[0]] = state[1]
+    state_stack.push(state)
+
+  while not state_stack.isEmpty():
+    current_node = state_stack.pop()
+    visited_states.append(current_node[0])
+
+    if problem.isGoalState(current_node[0]):
+      goal_state = current_node[0]
+      break
+
+    for state in problem.getSuccessors(current_node[0]):
+      if state[0] not in visited_states and state[0] not in parent_states.keys():
+        state_stack.push(state)
+        parent_states[state[0]] = current_node[0]
+        dir_to_node[state[0]] = current_node[1]
+
+  node_path = []
+  while True:
+    node_path.insert(0, goal_state)
+    if parent_states[goal_state] != start_state:
+      goal_state = parent_states[goal_state]
+    else:
+      break
+
+  dir_path = []
+  for node in node_path:
+    dir_path.append(dir_to_node[node])
+
+  return dir_path
+
 
 def breadthFirstSearch(problem):
   """
@@ -182,10 +208,10 @@ def aStarSearch(problem, heuristic=nullHeuristic):
   "Search the node that has the lowest combined cost and heuristic first."
   "*** YOUR CODE HERE ***"
   
-  open_set = util.PriorityQueue()
+  state_pq = util.PriorityQueue()
   visited_states = []
-  prev_states = {}
-  dirs = {}
+  parent_states = {}
+  dir_to_node = {}
 
   goal_state = []
 
@@ -193,12 +219,12 @@ def aStarSearch(problem, heuristic=nullHeuristic):
   first_nodes = problem.getSuccessors(start_state)
 
   for n in first_nodes:
-    prev_states[n[0]] = start_state
-    dirs[n[0]] = n[1]
-    open_set.push(n, problem.getCostOfActions([n[1]]) + heuristic(n[0], problem))
+    parent_states[n[0]] = start_state
+    dir_to_node[n[0]] = n[1]
+    state_pq.push(n, problem.getCostOfActions([n[1]]) + heuristic(n[0], problem))
 
-  while not open_set.isEmpty():
-    current_state = open_set.pop()
+  while not state_pq.isEmpty():
+    current_state = state_pq.pop()
     visited_states.append(current_state[0])
 
     if problem.isGoalState(current_state[0]):
@@ -206,36 +232,36 @@ def aStarSearch(problem, heuristic=nullHeuristic):
       break
 
     for successor in problem.getSuccessors(current_state[0]):
-      if successor[0] not in visited_states and successor[0] not in prev_states.keys():
-        prev_states[successor[0]] = current_state[0]
-        dirs[successor[0]] = successor[1]
+      if successor[0] not in visited_states and successor[0] not in parent_states.keys():
+        parent_states[successor[0]] = current_state[0]
+        dir_to_node[successor[0]] = successor[1]
         back_to_start = []
         dir_back_to_start = []
 
         parent = successor[0]
         while True:
           back_to_start.insert(0, parent)
-          if prev_states[parent] != start_state:
-            parent = prev_states[parent]
+          if parent_states[parent] != start_state:
+            parent = parent_states[parent]
           else:
             break
 
         for state in back_to_start:
-          dir_back_to_start.append(dirs[state])
+          dir_back_to_start.append(dir_to_node[state])
 
-        open_set.push(successor, problem.getCostOfActions(dir_back_to_start) + heuristic(successor[0], problem))
+        state_pq.push(successor, problem.getCostOfActions(dir_back_to_start) + heuristic(successor[0], problem))
 
-  path = []
+  node_path = []
   while True:
-    path.insert(0, goal_state)
-    if prev_states[goal_state] != start_state:
-      goal_state = prev_states[goal_state]
+    node_path.insert(0, goal_state)
+    if parent_states[goal_state] != start_state:
+      goal_state = parent_states[goal_state]
     else:
       break
 
   dir_path = []
-  for state in path:
-    dir_path.append(dirs[state])
+  for state in node_path:
+    dir_path.append(dir_to_node[state])
 
   return dir_path
   
